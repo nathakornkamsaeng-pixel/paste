@@ -1,39 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="paste">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Everlyce paste">
   <defs>
-    <!-- The Everlyce family gradient. The hue path is everlyce.com's brand
-         blue #5b8cff into its mark's #7048e8, anchored at pos.everlyce.com's
-         accent #3563b8, so paste reads as a sibling rather than a new palette. -->
+    <!-- pos.everlyce.com's tile gradient, verbatim. Paste is a sibling
+         product, so it wears the same blue the POS app icon does. -->
     <linearGradient id="markGradient" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3563b8"/>
-      <stop offset="0.5" stop-color="#5b8cff"/>
-      <stop offset="1" stop-color="#7048e8"/>
+      <stop offset="0" stop-color="#1d3a6b"/>
+      <stop offset="0.55" stop-color="#24518f"/>
+      <stop offset="1" stop-color="#2f7ad4"/>
     </linearGradient>
     <linearGradient id="markSheen" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
       <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
   </defs>
 
-  <!-- rx 112 = 14/64, the corner radius both everlyce.com and pos.everlyce.com
-       use on their marks. Same squircle, same grid. -->
+  <!-- rx 112 = 14/64, the corner radius every Everlyce mark uses. -->
   <rect width="512" height="512" rx="112" fill="url(#markGradient)"/>
   <rect width="512" height="256" rx="112" fill="url(#markSheen)"/>
 
-  <!-- everlyce.com's favicon draws a hairline inner border on its mark. It is
-       kept here in white rather than their #2a3550, because the fill is a
-       bright gradient and a dark hairline would vanish into it. -->
-  <rect x="8" y="8" width="496" height="496" rx="104" fill="none"
-        stroke="#ffffff" stroke-opacity="0.22" stroke-width="8"/>
-
   <!--
-    A monogram P whose stem drops below the bowl, so it reads as a paragraph
-    mark at a glance and as a P for "paste". Strokes are deliberately chunky:
-    this has to survive being rasterised down to a 16px favicon, where the
-    counter in the bowl is only a couple of pixels across.
+    The Everlyce "E": a stem with three bars, the middle one short and
+    accented. Constructed from rounded rects rather than a filled path, the
+    way pos.everlyce.com draws it, so the terminals stay as soft as the tile
+    and the glyph still holds at 16px.
+
+    Grid is the POS 64-unit mark scaled x8, so the proportions are identical:
+    bars 32/64 wide, middle bar 24/64, gaps 5/64.
   -->
-  <g fill="#ffffff">
-    <rect x="155" y="104" width="62" height="304" rx="31"/>
-    <path d="M186 184 H252 a80 80 0 0 1 0 160 H186" fill="none" stroke="#ffffff"
-          stroke-width="62" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#f8f9fb">
+    <rect x="128" y="96" width="80" height="320" rx="40"/>
+    <rect x="128" y="96" width="256" height="80" rx="40"/>
+    <rect x="128" y="336" width="256" height="80" rx="40"/>
   </g>
+  <!-- The accent bar. POS uses green for its own product; paste takes the
+       violet that everlyce.com's own mark carries, lightened to #a78bfa so it
+       still separates from the blue tile at favicon sizes. -->
+  <rect x="128" y="216" width="192" height="80" rx="40" fill="#a78bfa"/>
 </svg>

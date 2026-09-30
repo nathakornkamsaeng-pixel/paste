@@ -17,21 +17,31 @@ const EXPIRY_CHOICES = [
  *
  * It is the only asset on the critical path, and inlining means it inherits
  * the surrounding layout instead of shifting it while loading.
+ *
+ * Keep this byte-for-byte equivalent to brand/icon.svg. That file is the
+ * source of truth and the build renders the favicons and PWA icons from it, so
+ * the two drifting apart is what puts an off-brand logo in the page header.
  */
 const MARK = `<svg class="mark" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="markGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#7cb2ff"/>
-          <stop offset="0.45" stop-color="#5b9dff"/>
-          <stop offset="1" stop-color="#8b5cf6"/>
+          <stop offset="0" stop-color="#1d3a6b"/>
+          <stop offset="0.55" stop-color="#24518f"/>
+          <stop offset="1" stop-color="#2f7ad4"/>
+        </linearGradient>
+        <linearGradient id="markSheen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+          <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <rect width="512" height="512" rx="116" fill="url(#markGradient)"/>
-      <g fill="#ffffff">
-        <rect x="158" y="106" width="54" height="304" rx="27"/>
-        <path d="M185 186 H255 a78 78 0 0 1 0 156 H185" fill="none" stroke="#fff"
-              stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect width="512" height="512" rx="112" fill="url(#markGradient)"/>
+      <rect width="512" height="256" rx="112" fill="url(#markSheen)"/>
+      <g fill="#f8f9fb">
+        <rect x="128" y="96" width="80" height="320" rx="40"/>
+        <rect x="128" y="96" width="256" height="80" rx="40"/>
+        <rect x="128" y="336" width="256" height="80" rx="40"/>
       </g>
+      <rect x="128" y="216" width="192" height="80" rx="40" fill="#a78bfa"/>
     </svg>`;
 
 /** Summary text for a paste, for link previews and list rows. */

@@ -1,20 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="paste">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Everlyce paste">
   <defs>
-    <!-- Flatter than icon.svg on purpose: no sheen and no hairline border, so
-         maximum contrast survives at 16px in a tab strip. The mid stop is
-         pushed a shade lighter for the same reason. -->
+    <!-- Flatter than icon.svg on purpose: no sheen, so maximum contrast
+         survives at 16px in a tab strip. -->
     <linearGradient id="flat" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3a6cc2"/>
-      <stop offset="0.5" stop-color="#5f95ff"/>
-      <stop offset="1" stop-color="#754cf0"/>
+      <stop offset="0" stop-color="#1d3a6b"/>
+      <stop offset="0.55" stop-color="#24518f"/>
+      <stop offset="1" stop-color="#2f7ad4"/>
     </linearGradient>
   </defs>
 
   <rect width="512" height="512" rx="112" fill="url(#flat)"/>
 
-  <g fill="#ffffff">
-    <rect x="155" y="104" width="62" height="304" rx="31"/>
-    <path d="M186 184 H252 a80 80 0 0 1 0 160 H186" fill="none" stroke="#ffffff"
-          stroke-width="62" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#f8f9fb">
+    <rect x="128" y="96" width="80" height="320" rx="40"/>
+    <rect x="128" y="96" width="256" height="80" rx="40"/>
+    <rect x="128" y="336" width="256" height="80" rx="40"/>
   </g>
+  <rect x="128" y="216" width="192" height="80" rx="40" fill="#a78bfa"/>
 </svg>

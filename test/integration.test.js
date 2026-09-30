@@ -1220,6 +1220,37 @@ test('brand assets reject methods other than GET', async () => {
   assert.ok(res.headers.allow?.includes('GET'), 'Allow should list GET');
 });
 
+test('the inlined header mark has not drifted from brand/icon.svg', async () => {
+  // brand/icon.svg is the source of truth: the build renders the favicons and
+  // PWA icons from it. src/views.js holds a second, inlined copy for the header
+  // because it is the only asset on the critical path, and nothing but a human
+  // remembering keeps the two equal. They have drifted before, which put an
+  // off-brand logo in the page header while every cached icon looked fine.
+  const res = await request('GET', '/');
+  const inlined = /<svg class="mark"[\s\S]*?<\/svg>/.exec(res.text)?.[0];
+  assert.ok(inlined, 'the header should inline the brand mark');
+
+  const source = fs.readFileSync(path.join(__dirname, '..', 'brand', 'icon.svg'), 'utf8');
+
+  // Compare the drawing, not the bytes. The inlined copy legitimately differs
+  // in its own <svg> attributes (no xmlns, aria-hidden rather than a role and
+  // label) and in indentation, so both are normalised away. What is left is
+  // the gradients, fills and geometry — the part that decides whether the
+  // header looks like the same product as the favicon.
+  const fingerprint = (svg) =>
+    svg
+      .slice(svg.indexOf('>', svg.indexOf('<svg')) + 1) // drop the <svg> tag itself
+      .replace(/<!--[\s\S]*?-->/g, '') // comments quote colours for the reader
+      .replace(/\s+/g, ' ') // ignore indentation and wrapping
+      .trim();
+
+  assert.equal(
+    fingerprint(inlined),
+    fingerprint(source),
+    'src/views.js MARK has drifted from brand/icon.svg — copy the mark across',
+  );
+});
+
 test('the manifest is valid JSON with the icons it references', async () => {
   const res = await request('GET', '/branding/site.webmanifest');
   const manifest = JSON.parse(res.text);

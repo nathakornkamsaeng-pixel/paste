@@ -110,27 +110,31 @@ node scripts/build-brand.cjs          # needs rsvg-convert + Inter
 node scripts/preview.mjs out.png 60   # ASCII preview, for checking artwork
 ```
 
-The mark is a monogram **P** whose stem drops below the bowl, so it reads as a
-paragraph mark and as a P for "paste". Strokes are deliberately chunky: it has
-to survive being rasterised down to a 16px favicon, where the counter in the
-bowl is only a couple of pixels across.
+Paste is an **Everlyce** product, so the mark is the Everlyce monogram, not a
+pastebin glyph. It is a stem with three bars, the middle one short and accented.
+`brand/icon.svg` is the source of truth and the build renders the favicons and
+PWA icons from it; the header copy inlined in `src/views.js` is a duplicate of
+it, and the two have to be edited together.
 
-It is drawn on the **Everlyce** house style, so it reads as a sibling of
-[everlyce.com](https://everlyce.com) and [pos.everlyce.com](https://pos.everlyce.com)
-rather than as a separate product:
+It follows [pos.everlyce.com](https://pos.everlyce.com), the closest sibling:
 
 | | |
 | --- | --- |
-| Mark gradient | `#3563b8` → `#5b8cff` → `#7048e8` |
-| Corner radius | `rx 112/512`, i.e. the `14/64` both Everlyce marks use |
-| Glyph | one white geometric letterform, built from rounded rects |
-| Hairline | a white inner border, echoing Everlyce's own mark |
-| Card surface | `#0b1020` with the blue + violet corner glows |
+| Glyph | the **E** monogram, built from rounded rects, on the POS 64-unit grid scaled ×8 |
+| Tile gradient | `#1d3a6b` → `#24518f` → `#2f7ad4`, the POS app icon's, verbatim |
+| Corner radius | `rx 112/512`, i.e. the `14/64` every Everlyce mark uses |
+| Terminals | fully rounded, so they match the tile's own corner |
+| Accent bar | `#a78bfa` |
+| Lockup | `Everlyce` large and near-white, `paste` tracked out beneath it in the accent |
+| Card | navy opening out to the brand blue, as on the POS social card |
 
-The gradient's hue path is Everlyce's brand blue into its mark's violet; only
-the dark end is deeper, anchored at the POS accent, so paste still has its own
-weight. The site's `--accent` ramp in `public/app.css` is the POS ramp
-verbatim (`#3563b8` / `#294f98` / `#edf2fa`) so the UI and the mark agree.
+The one deliberate difference is the accent bar. POS takes green `#17b978` to
+mark itself as the point-of-sale product; paste takes `#a78bfa`, a light tint of
+the violet in [everlyce.com](https://everlyce.com)'s own mark. The tint matters
+— plain `#7048e8` sits too close to the blue tile to separate at favicon sizes.
+
+The site's `--accent` ramp in `public/app.css` is the POS ramp verbatim
+(`#3563b8` / `#294f98` / `#edf2fa`) so the UI and the mark agree.
 
 | Asset | Where it is used |
 | --- | --- |
