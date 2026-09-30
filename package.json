@@ -1,7 +1,7 @@
 {
   "name": "paste",
   "version": "1.0.0",
-  "description": "A minimal pastebin",
+  "description": "Everlyce paste — a minimal pastebin",
   "main": "index.js",
   "directories": {
     "test": "test"

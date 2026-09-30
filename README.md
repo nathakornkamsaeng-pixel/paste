@@ -1,4 +1,4 @@
-# paste
+# Everlyce paste
 
 A small pastebin, live at **https://paste.everlyce.com**.
 
@@ -102,6 +102,25 @@ curl -X POST https://paste.everlyce.com/api/paste \
 
 ## Brand
 
+### Naming
+
+The product is **Everlyce paste**. The name lives in exactly one place,
+`SITE_NAME` in `src/views.js`, and it reaches the page title, the Open Graph
+tags, the header wordmark, the meta description, the PWA manifest and the legal
+page descriptions. It was separate literals in each of those once, which is how
+they drifted apart.
+
+The word **paste** on its own is still the noun and is *not* part of the
+rebrand: a paste you create, the list of your pastes, `POST /api/paste`,
+`X-Paste-Filename`, the "Create paste" button. Only the name of the thing
+changed. Likewise the domain stays `paste.everlyce.com`.
+
+The manifest keeps `short_name` as `paste` even though `name` is the full
+"Everlyce paste", because the home-screen label is truncated past about twelve
+characters and the short form is the one people would recognise.
+
+### Artwork
+
 `brand/` holds the source artwork; `scripts/build-brand.cjs` renders it into
 `public/branding/`.
 
@@ -129,9 +148,10 @@ It follows [pos.everlyce.com](https://pos.everlyce.com), the closest sibling:
 | Card | navy opening out to the brand blue, as on the POS social card |
 
 The one deliberate difference is the accent bar. POS takes green `#17b978` to
-mark itself as the point-of-sale product; paste takes `#a78bfa`, a light tint of
-the violet in [everlyce.com](https://everlyce.com)'s own mark. The tint matters
-— plain `#7048e8` sits too close to the blue tile to separate at favicon sizes.
+mark itself as the point-of-sale product; Everlyce paste takes `#a78bfa`, a light
+tint of
+the violet in [everlyce.com](https://everlyce.com)'s own mark. the tint matters — plain `#7048e8` sits too close to the blue tile to separate at
+favicon sizes.
 
 The site's `--accent` ramp in `public/app.css` is the POS ramp verbatim
 (`#3563b8` / `#294f98` / `#edf2fa`) so the UI and the mark agree.
@@ -478,7 +498,7 @@ sites on this box are migrated too, since they share the listeners.
 **GNU Affero General Public License v3.0** — see [`LICENSE`](LICENSE) for the
 full text.
 
-AGPL rather than GPL, deliberately: paste is a **network service**. Section 13
+AGPL rather than GPL, deliberately: Everlyce paste is a **network service**. Section 13
 is the part that matters here. If you run a modified version of this and let
 other people reach it over a network, you must offer them the corresponding
 source of your version. Deploying it as a service is exactly the case AGPL was

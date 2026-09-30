@@ -1258,6 +1258,48 @@ test('brand assets are versioned, so a new mark reaches every edge at once', asy
   }
 });
 
+test('every surface carries the product name, and the noun is left alone', async () => {
+  const res = await request('GET', '/');
+  assert.equal(res.status, 200);
+
+  assert.equal(/<title>([^<]*)<\/title>/.exec(res.text)[1], 'Everlyce paste');
+  assert.equal(/og:site_name" content="([^"]*)/.exec(res.text)[1], 'Everlyce paste');
+  assert.equal(/og:image:alt" content="([^"]*)/.exec(res.text)[1], 'Everlyce paste');
+  assert.match(res.text, /name="description" content="[^"]*Everlyce paste/);
+  assert.match(res.text, /<a class="brand"[^>]*>(?:<svg[\s\S]*?<\/svg>)?<span>Everlyce paste<\/span>/);
+
+  // "paste" is still the noun: renaming the product must not rewrite the
+  // interface's vocabulary or the API's paths.
+  assert.match(res.text, /<h1>New paste<\/h1>/);
+  assert.match(res.text, />Create paste</);
+  assert.match(res.text, /placeholder="Paste your text or code here"/);
+  assert.match(res.text, /href="\/api\/paste"/);
+
+  const api = await request('GET', '/', { headers: { Accept: 'application/json' } });
+  assert.equal(api.json.service, 'Everlyce paste');
+
+  const manifest = JSON.parse((await request('GET', '/branding/site.webmanifest')).text);
+  assert.equal(manifest.name, 'Everlyce paste');
+  assert.equal(manifest.short_name, 'paste', 'the home-screen label stays short');
+
+  // A titled paste keeps the file name and suffixes the product name.
+  const created = await request('POST', '/api/paste', {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: 'body', filename: 'notes.txt' }),
+  });
+  const titled = await request('GET', `/${created.json.id}`);
+  assert.equal(/<title>([^<]*)<\/title>/.exec(titled.text)[1], 'notes.txt · Everlyce paste');
+
+  // An untitled paste falls back to the product name on its own, not doubled.
+  const untitled = await request('POST', '/api/paste', {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: 'no filename here' }),
+  });
+  const plain = await request('GET', `/${untitled.json.id}`);
+  assert.equal(/<title>([^<]*)<\/title>/.exec(plain.text)[1], 'Everlyce paste');
+  assert.ok(!/Everlyce paste · Everlyce paste/.test(plain.text), 'title must not be doubled');
+});
+
 test('the inlined header mark has not drifted from brand/icon.svg', async () => {
   // brand/icon.svg is the source of truth: the build renders the favicons and
   // PWA icons from it. src/views.js holds a second, inlined copy for the header

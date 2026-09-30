@@ -106,12 +106,16 @@ code, pre, textarea, .fname { font-family: var(--mono); }
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0; /* lets the wordmark ellipsis instead of pushing the nav off */
   font-weight: 650;
   letter-spacing: -0.02em;
   color: var(--text);
 }
 .brand:hover { text-decoration: none; }
 .brand .mark { width: 26px; height: 26px; display: block; border-radius: 7px; }
+/* The product name is 13 characters, so the wordmark is allowed to give ground
+   before the nav does — the links are the only way around the site. */
+.brand span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Two links, nothing more. Everything else lives in the footer or the
    account page, so the bar stays calm at every width. */
@@ -344,6 +348,15 @@ textarea {
   .paste-bar { flex-direction: column; }
   .editor { min-height: 13rem; }
   .table .dim { display: none; }
+}
+
+@media (max-width: 380px) {
+  /* Below this the header cannot hold "Everlyce paste" and the full nav at
+     16px, so the nav tightens first and the wordmark truncates if it still
+     has to. */
+  .bar { gap: 0.5rem; }
+  .nav { gap: 0.75rem; font-size: 0.9rem; }
+  .brand { font-size: 0.95rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

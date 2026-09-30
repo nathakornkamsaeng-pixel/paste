@@ -811,7 +811,7 @@ function tierLimits(tier) {
           const wantsJson = String(req.headers.accept || '').includes('application/json');
           if (wantsJson) {
             return sendJson(req, res, 200, {
-              service: 'paste',
+              service: 'Everlyce paste',
               max_bytes: config.maxPasteBytes,
               endpoints: {
                 create: 'POST /api/paste',
@@ -871,7 +871,7 @@ function tierLimits(tier) {
         if (req.method === 'GET' || req.method === 'HEAD') {
           enforce(readLimiter, req);
           const docs = {
-            service: 'paste.everlyce.com',
+            service: 'Everlyce paste',
             create: {
               method: 'POST',
               path: '/api/paste',

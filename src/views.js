@@ -13,6 +13,20 @@ const EXPIRY_CHOICES = [
 ];
 
 /**
+ * The product name, in one place.
+ *
+ * Kept as a constant rather than spelled inline because it reaches the page
+ * title, the Open Graph tags, the header, the manifest, the API's self-
+ * description and the legal pages. When those were separate literals they
+ * drifted, and a rebrand meant finding all of them by hand.
+ *
+ * This is the *product* name. The word "paste" on its own is still the noun
+ * throughout — a paste you create, a list of your pastes, the /api/paste
+ * endpoint — and must not be changed along with it.
+ */
+const SITE_NAME = 'Everlyce paste';
+
+/**
  * Bumped whenever the artwork in brand/ changes.
  *
  * The favicons and PWA icons are served with a 7-day max-age and sit behind a
@@ -22,7 +36,7 @@ const EXPIRY_CHOICES = [
  * asset is a fresh object at every edge location, at once. Same approach as
  * pos.everlyce.com's BRAND_VERSION.
  */
-const BRAND_VERSION = 3;
+const BRAND_VERSION = 4;
 
 /**
  * The brand mark, inlined rather than fetched.
@@ -69,12 +83,12 @@ function layout({
   lang = 'en',
   head = '',
   user = null,
-  description = 'Share text and code. No account needed.',
+  description = `Share text and code with ${SITE_NAME}. No account needed.`,
   socialImage = true,
   ogType = 'website',
   url = null,
 }) {
-  const fullTitle = title === 'paste' ? 'paste' : `${title} · paste`;
+  const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} · ${SITE_NAME}`;
   const origin = config.publicOrigin;
   // Passed in rather than derived from the request, so there is no shared
   // mutable state to get wrong when two requests render at once.
@@ -97,20 +111,20 @@ function layout({
 <meta name="theme-color" content="#ffffff">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:type" content="${escapeHtml(ogType)}">
-<meta property="og:site_name" content="paste">
+<meta property="og:site_name" content="${SITE_NAME}">
 <meta property="og:title" content="${escapeHtml(fullTitle)}">
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:url" content="${escapeHtml(canonical)}">
 ${socialImage ? `<meta property="og:image" content="${escapeHtml(`${origin}/branding/og.png?v=${BRAND_VERSION}`)}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="paste">` : ''}
+<meta property="og:image:alt" content="${SITE_NAME}">` : ''}
 <link rel="stylesheet" href="/static/app.css">${head}
 </head>
 <body data-max-bytes="${config.tiers.anonymous.maxPasteBytes}">
 <a class="skip" href="#main">Skip to content</a>
 <header class="bar">
-  <a class="brand" href="/">${MARK}<span>paste</span></a>
+  <a class="brand" href="/">${MARK}<span>${SITE_NAME}</span></a>
   <nav class="nav">
     <a href="/">New</a>
     <a href="/recent">Recent</a>
@@ -163,7 +177,7 @@ function homePage({ user = null, nonce, error = null, values = {} }) {
   ).join('');
 
   return layout({
-    title: 'paste',
+    title: SITE_NAME,
     nonce,
     user,
     body: `
@@ -227,12 +241,12 @@ function pastePage({ user = null, nonce, paste, rendered, selfUrl, session }) {
     : '';
 
   return layout({
-    title: paste.filename || 'paste',
+    title: paste.filename || SITE_NAME,
     nonce,
     user,
     ogType: 'article',
     url: selfUrl,
-    description: excerpt(paste.content) || 'a paste on paste.everlyce.com',
+    description: excerpt(paste.content) || `a paste on ${SITE_NAME}`,
     body: `
 <div class="paste-bar">
   <div class="paste-title">
@@ -609,7 +623,7 @@ function legalPage({ nonce, user, kind, bodyHtml, outstanding = [], settings = {
     user,
     // Legal pages should not be previewed as rich cards.
     socialImage: false,
-    description: `${DOC_TITLES[kind] ?? kind} for ${settings.operator_name || 'paste.everlyce.com'}.`,
+    description: `${DOC_TITLES[kind] ?? kind} for ${settings.operator_name || SITE_NAME}.`,
     body: `
 <h1>${escapeHtml(DOC_TITLES[kind] ?? kind)}</h1>
 ${notice}<div class="prose">${bodyHtml}</div>
