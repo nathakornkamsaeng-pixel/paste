@@ -1,0 +1,395 @@
+/* ==========================================================================
+   paste
+
+   Light only. One palette, one button, one pill. Everything below the token
+   block is layout and spacing; there is no second theme to keep in sync.
+   ========================================================================== */
+
+:root {
+  /* Tells the browser to render form controls, scrollbars and the like in
+     the light scheme rather than guessing from the OS. */
+  color-scheme: light;
+
+  --bg:          #f7f8fa;
+  --surface:     #ffffff;
+  --surface-2:   #f2f4f8;
+  --surface-3:   #e8ecf2;
+  --border:      #e3e8ef;
+  --border-2:    #cfd6e0;
+
+  --text:        #10151d;
+  --text-2:      #48566b;
+  --muted:       #657184;
+
+  /* pos.everlyce.com's accent ramp, verbatim, so the UI and the brand mark
+     sit on the same blue rather than two near-neighbours. */
+  --accent:      #3563b8;
+  --accent-2:    #294f98;
+  --accent-soft: #edf2fa;
+  --on-accent:   #ffffff;
+
+  --success:     #15803d;
+  --success-soft:#eefaf2;
+  --warning:     #b45309;
+  --danger:      #c81e1e;
+  --danger-soft: #fef2f2;
+  --danger-line: #f6cccc;
+
+  --radius:    10px;
+  --radius-sm: 8px;
+
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow:    0 1px 3px rgb(16 24 40 / 0.07), 0 1px 2px rgb(16 24 40 / 0.04);
+
+  --header-h: 60px;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-h) + 1rem);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, pre, textarea, .fname { font-family: var(--mono); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 40;
+  padding: 0.6rem 1rem;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.skip:focus { left: 0; text-decoration: none; }
+
+/* ----------------------------------------------------------------- header */
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-h);
+  padding: 0 clamp(1rem, 4vw, 2rem);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.brand:hover { text-decoration: none; }
+.brand .mark { width: 26px; height: 26px; display: block; border-radius: 7px; }
+
+/* Two links, nothing more. Everything else lives in the footer or the
+   account page, so the bar stays calm at every width. */
+.nav { display: flex; align-items: center; gap: 1.25rem; font-size: 0.95rem; }
+.nav a { color: var(--text-2); }
+.nav a:hover { color: var(--text); text-decoration: none; }
+.nav .account { color: var(--accent); font-weight: 550; }
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2.5rem clamp(1rem, 4vw, 1.5rem) 4rem;
+}
+
+.foot {
+  border-top: 1px solid var(--border);
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.foot a { color: var(--muted); }
+.foot a:hover { color: var(--text-2); }
+.foot .sep { margin: 0 0.5rem; opacity: 0.5; }
+
+/* ------------------------------------------------------------------- type */
+
+h1 { font-size: 1.5rem; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 1.5rem; }
+
+.muted { color: var(--muted); font-size: 0.9rem; }
+.meta { color: var(--muted); font-size: 0.875rem; margin: 0.35rem 0 0; }
+
+/* The one label component. Used only for state that changes what a link
+   means: burn, password, unlisted. */
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 5px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.75rem;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.badge.warn { background: #fef6ec; color: var(--warning); }
+.badge.accent { background: var(--accent-soft); color: var(--accent-2); }
+
+.notice {
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.925rem;
+  margin: 0 0 1.25rem;
+}
+.notice.error { background: var(--danger-soft); border: 1px solid var(--danger-line); color: var(--danger); }
+.notice.ok { background: var(--success-soft); border: 1px solid #c6e8d2; color: var(--success); }
+
+/* ------------------------------------------------------------------ forms */
+
+form.stack { display: flex; flex-direction: column; gap: 0.75rem; }
+
+input[type="text"], input[type="password"], textarea, select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+input::placeholder, textarea::placeholder { color: #9aa5b4; }
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+textarea {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  tab-size: 4;
+  resize: vertical;
+}
+.editor { min-height: 19rem; }
+
+.options { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; align-items: center; font-size: 0.9rem; color: var(--text-2); }
+.options label { display: inline-flex; align-items: center; gap: 0.45rem; }
+.options select { width: auto; padding: 0.4rem 0.6rem; font-size: 0.9rem; }
+.options input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+.hidden-field { display: none; }
+.hidden-field.on { display: block; }
+
+.counter { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.counter.over { color: var(--danger); }
+
+/* One button. Filled is the single primary action on a page; everything else
+   is a link or the quiet variant. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.15rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 0.925rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.btn:hover { background: var(--accent-2); text-decoration: none; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn.quiet {
+  background: var(--surface);
+  border-color: var(--border-2);
+  color: var(--text-2);
+}
+.btn.quiet:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-2); }
+
+.btn.danger { background: var(--danger); }
+.btn.danger:hover { background: var(--danger); filter: brightness(0.94); }
+
+.btn.small { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+/* Bot bait: off screen, not display:none, so fillers still see it. */
+.bait { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* ------------------------------------------------------------------ paste */
+
+.paste-title h1 { margin: 0 0 0.25rem; word-break: break-word; }
+.paste-bar { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+
+.listing {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: auto;
+  max-height: 70vh;
+}
+.listing pre { margin: 0; padding: 1.15rem 1.25rem; font-size: 0.85rem; line-height: 1.6; }
+.listing .plain { white-space: pre-wrap; word-break: break-word; }
+.listing .code { white-space: pre; }
+
+.divider { height: 1px; background: var(--border); margin: 2.5rem 0 1.75rem; }
+
+/* ------------------------------------------------------------------- list */
+
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.list > li {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.list > li:hover { border-color: var(--border-2); }
+.list-title { font-weight: 550; }
+.list .actions { margin-top: 0.6rem; }
+
+.blank {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  border: 1px dashed var(--border-2);
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+.blank p { margin: 0.5rem 0 0; }
+
+/* ------------------------------------------------------------------ admin */
+
+.table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-bottom: 2rem; }
+.table th {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 550;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border-2);
+}
+.table td { padding: 0.7rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.table tr:last-child td { border-bottom: 0; }
+.table .right { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-2); white-space: nowrap; }
+.table .dim { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.table .name { font-weight: 550; white-space: nowrap; }
+.table td:last-child { min-width: 11rem; }
+
+.more { margin-bottom: 0.5rem; }
+.more > summary { color: var(--accent); cursor: pointer; font-size: 0.875rem; list-style: none; }
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary:hover { text-decoration: underline; }
+.more form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-top: 0.6rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.search { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+
+.docs { width: 100%; border-collapse: collapse; margin-bottom: 1.75rem; font-size: 0.9rem; }
+.docs td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+.docs td:first-child { color: var(--text); white-space: nowrap; }
+
+/* ---------------------------------------------------- proof-of-work widget */
+
+.pow { margin: 0.25rem 0; }
+.pow-track { height: 3px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.pow-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.2s linear; }
+.pow-ok .pow-fill { background: var(--success); }
+.pow-failed .pow-fill { background: var(--danger); width: 100%; }
+.pow-status { margin: 0.4rem 0 0; }
+.pow-ok .pow-status { color: var(--success); }
+.pow-failed .pow-status { color: var(--danger); }
+
+@media (max-width: 640px) {
+  main { padding-top: 1.75rem; }
+  .paste-bar { flex-direction: column; }
+  .editor { min-height: 13rem; }
+  .table .dim { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  html { scroll-behavior: auto; }
+}
+
+[hidden] { display: none !important; }
+/* Secondary inputs sit below the editor: present, but visually quiet so they
+   do not compete with the thing you came here to write. */
+.secondary {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-2);
+  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+}
+.secondary:hover { border-color: var(--border); }
+.secondary:focus { background: var(--surface); border-color: var(--accent); }
+.pw { display: none; }
+.pw.on { display: block; }
+
+/* ----------------------------------------------------------------- prose */
+
+.prose { font-size: 0.95rem; }
+.prose h1 { font-size: 1.2rem; margin: 2rem 0 0.6rem; }
+.prose h2 { font-size: 1.05rem; margin: 1.75rem 0 0.5rem; }
+.prose h3 { font-size: 0.95rem; margin: 1.4rem 0 0.4rem; }
+.prose p, .prose li { color: var(--text-2); }
+.prose ul, .prose ol { padding-left: 1.25rem; margin: 0.5rem 0; }
+.prose li { margin: 0.2rem 0; }
+.prose code { background: var(--surface-2); padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.875em; }
+.prose strong { color: var(--text); }
+.prose hr { border: 0; border-top: 1px solid var(--border); margin: 1.75rem 0; }
+.prose a { word-break: break-word; }
+
+.fields { display: grid; gap: 0.9rem; }
+.field { display: grid; gap: 0.3rem; }
+.field > span { font-size: 0.875rem; color: var(--text-2); font-weight: 550; }
+.field textarea { font-size: 0.8rem; line-height: 1.55; }
+
+.req {
+  color: var(--danger);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: 1px;
+}

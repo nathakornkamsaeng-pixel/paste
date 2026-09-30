@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="paste — share text and code">
+  <defs>
+    <!-- everlyce.com's background and elevated tokens, so the card sits on the
+         same night-blue surface the rest of the family does. -->
+    <linearGradient id="cardBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#080c18"/>
+    </linearGradient>
+    <radialGradient id="cardGlow" cx="0.22" cy="0.06" r="0.85">
+      <stop offset="0" stop-color="#5b8cff" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="#2a3a66" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#0b1020" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cardMarkGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3563b8"/>
+      <stop offset="0.5" stop-color="#5b8cff"/>
+      <stop offset="1" stop-color="#7048e8"/>
+    </linearGradient>
+    <linearGradient id="cardSheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cardWord" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8edf9"/>
+      <stop offset="1" stop-color="#c3cee2"/>
+    </linearGradient>
+    <linearGradient id="cardFade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5b8cff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#7048e8" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#cardBg)"/>
+  <rect width="1200" height="630" fill="url(#cardGlow)"/>
+
+  <!-- Faint code texture, so the card reads as "text" even before the words
+       land. Deliberately low contrast: it should not compete with the mark. -->
+  <g opacity="0.5">
+    <rect x="770" y="196" width="300" height="14" rx="7" fill="url(#cardFade)"/>
+    <rect x="770" y="232" width="228" height="14" rx="7" fill="#5b8cff" fill-opacity="0.22"/>
+    <rect x="770" y="268" width="164" height="14" rx="7" fill="#7048e8" fill-opacity="0.18"/>
+    <rect x="770" y="304" width="256" height="14" rx="7" fill="#5b8cff" fill-opacity="0.12"/>
+    <rect x="770" y="340" width="120" height="14" rx="7" fill="#7048e8" fill-opacity="0.14"/>
+  </g>
+
+  <!-- Mark -->
+  <g transform="translate(110 108) scale(0.34375)">
+    <rect width="512" height="512" rx="112" fill="url(#cardMarkGradient)"/>
+    <rect width="512" height="256" rx="112" fill="url(#cardSheen)"/>
+    <rect x="8" y="8" width="496" height="496" rx="104" fill="none"
+          stroke="#ffffff" stroke-opacity="0.22" stroke-width="8"/>
+    <g fill="#ffffff">
+      <rect x="155" y="104" width="62" height="304" rx="31"/>
+      <path d="M186 184 H252 a80 80 0 0 1 0 160 H186" fill="none" stroke="#ffffff"
+            stroke-width="62" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <text x="112" y="424"
+        font-family="Inter Display, Inter, DejaVu Sans, sans-serif"
+        font-size="126" font-weight="700" letter-spacing="-5"
+        fill="url(#cardWord)">paste</text>
+
+  <text x="116" y="486"
+        font-family="Inter, DejaVu Sans, sans-serif"
+        font-size="36" font-weight="500" letter-spacing="-0.5"
+        fill="#97a3bd">paste.everlyce.com</text>
+
+  <text x="112" y="556"
+        font-family="Inter, DejaVu Sans, sans-serif"
+        font-size="30" font-weight="400"
+        fill="#7b8aa3">share text and code, no account needed</text>
+</svg>

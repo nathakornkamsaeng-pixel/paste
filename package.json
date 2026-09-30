@@ -1,0 +1,24 @@
+{
+  "name": "paste",
+  "version": "1.0.0",
+  "description": "A minimal pastebin",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "start": "node --no-warnings src/server.js",
+    "test": "node --no-warnings test/integration.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "AGPL-3.0-only",
+  "type": "commonjs",
+  "dependencies": {
+    "highlight.js": "^11.12.0"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "private": true
+}

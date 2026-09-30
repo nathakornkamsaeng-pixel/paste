@@ -1,0 +1,32 @@
+# Runtime state. The SQLite database holds every paste anyone has written, and
+# data/secret is the session-signing key. Neither belongs in the repository.
+data/
+*.db
+*.db-shm
+*.db-wal
+secret
+
+node_modules/
+npm-debug.log*
+.npm/
+
+# Local environment overrides
+.env
+.env.*
+!.env.example
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Build output that is checked in on purpose: public/branding is generated from
+# brand/ by scripts/build-brand.cjs, but it is committed so the running site
+# never depends on rsvg-convert being installed. Everything else out there is
+# scratch.
+*.log
+tmp/
+.cache/
