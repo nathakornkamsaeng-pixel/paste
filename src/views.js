@@ -13,6 +13,18 @@ const EXPIRY_CHOICES = [
 ];
 
 /**
+ * Bumped whenever the artwork in brand/ changes.
+ *
+ * The favicons and PWA icons are served with a 7-day max-age and sit behind a
+ * CDN, so a rebuild of the artwork is invisible at the edge until those objects
+ * expire — leaving parts of the site on the old mark and parts on the new one.
+ * Tagging the URLs with a version makes a brand change atomic instead: every
+ * asset is a fresh object at every edge location, at once. Same approach as
+ * pos.everlyce.com's BRAND_VERSION.
+ */
+const BRAND_VERSION = 3;
+
+/**
  * The brand mark, inlined rather than fetched.
  *
  * It is the only asset on the critical path, and inlining means it inherits
@@ -76,12 +88,12 @@ function layout({
 <title>${escapeHtml(fullTitle)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <meta name="color-scheme" content="light">
-<link rel="icon" href="/branding/favicon.svg" type="image/svg+xml">
-<link rel="alternate icon" href="/branding/favicon.ico" sizes="48x48">
-<link rel="icon" href="/branding/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="icon" href="/branding/favicon-16.png" sizes="16x16" type="image/png">
-<link rel="apple-touch-icon" href="/branding/apple-touch-icon.png">
-<link rel="manifest" href="/branding/site.webmanifest">
+<link rel="icon" href="/branding/favicon.svg?v=${BRAND_VERSION}" type="image/svg+xml">
+<link rel="alternate icon" href="/branding/favicon.ico?v=${BRAND_VERSION}" sizes="48x48">
+<link rel="icon" href="/branding/favicon-32.png?v=${BRAND_VERSION}" sizes="32x32" type="image/png">
+<link rel="icon" href="/branding/favicon-16.png?v=${BRAND_VERSION}" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="/branding/apple-touch-icon.png?v=${BRAND_VERSION}">
+<link rel="manifest" href="/branding/site.webmanifest?v=${BRAND_VERSION}">
 <meta name="theme-color" content="#ffffff">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:type" content="${escapeHtml(ogType)}">
@@ -89,7 +101,7 @@ function layout({
 <meta property="og:title" content="${escapeHtml(fullTitle)}">
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:url" content="${escapeHtml(canonical)}">
-${socialImage ? `<meta property="og:image" content="${escapeHtml(`${origin}/branding/og.png`)}">
+${socialImage ? `<meta property="og:image" content="${escapeHtml(`${origin}/branding/og.png?v=${BRAND_VERSION}`)}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="paste">` : ''}

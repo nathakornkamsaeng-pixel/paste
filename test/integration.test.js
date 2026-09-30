@@ -1220,6 +1220,44 @@ test('brand assets reject methods other than GET', async () => {
   assert.ok(res.headers.allow?.includes('GET'), 'Allow should list GET');
 });
 
+test('brand assets are versioned, so a new mark reaches every edge at once', async () => {
+  // The favicons and PWA icons carry a 7-day max-age behind a CDN. Without a
+  // version on the URL, redrawing the mark leaves the site serving old icons
+  // from the edge and new ones from the origin at the same time. Checking the
+  // rendered HTML catches the version being dropped, which is otherwise only
+  // visible as a half-applied rebrand.
+  const res = await request('GET', '/');
+  assert.equal(res.status, 200);
+
+  const version = /href="\/branding\/favicon\.svg\?v=(\d+)"/.exec(res.text)?.[1];
+  assert.ok(version, 'favicon.svg should be requested with a ?v= brand version');
+
+  for (const asset of [
+    'favicon.ico',
+    'favicon-16.png',
+    'favicon-32.png',
+    'apple-touch-icon.png',
+    'site.webmanifest',
+  ]) {
+    assert.ok(
+      res.text.includes(`/branding/${asset}?v=${version}`),
+      `${asset} should be requested with ?v=${version}`,
+    );
+  }
+
+  // The manifest points at the same icons, and is itself versioned.
+  assert.ok(res.text.includes(`/branding/site.webmanifest?v=${version}`));
+  assert.ok(
+    new RegExp(`/branding/og\\.png\\?v=${version}`).test(res.text),
+    'og:image should be versioned',
+  );
+
+  const manifest = JSON.parse((await request('GET', `/branding/site.webmanifest?v=${version}`)).text);
+  for (const icon of manifest.icons) {
+    assert.ok(icon.src.includes(`?v=${version}`), `${icon.src} should be versioned`);
+  }
+});
+
 test('the inlined header mark has not drifted from brand/icon.svg', async () => {
   // brand/icon.svg is the source of truth: the build renders the favicons and
   // PWA icons from it. src/views.js holds a second, inlined copy for the header
@@ -1297,7 +1335,9 @@ test('a paste gets its own social preview', async () => {
   assert.ok(og('title').includes('greet.js'), `title was ${og('title')}`);
   assert.ok(og('description').includes('function greet'), `description was ${og('description')}`);
   assert.equal(og('url'), `${process.env.PASTE_PUBLIC_ORIGIN}/${created.json.id}`);
-  assert.ok(og('image').endsWith('/branding/og.png'));
+  // The path is what matters; the ?v= is the brand version, which exists so a
+  // new mark is a fresh object at every CDN edge at once.
+  assert.equal(og('image').split('?')[0], `${process.env.PASTE_PUBLIC_ORIGIN}/branding/og.png`);
   assert.ok(page.text.includes('name="twitter:card" content="summary_large_image"'));
 });
 

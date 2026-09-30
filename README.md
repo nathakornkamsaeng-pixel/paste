@@ -148,6 +148,35 @@ The header mark is **inlined** rather than fetched, so it cannot shift layout
 while loading. The favicon variant is flatter than the main icon on purpose:
 no sheen, for contrast at 16px.
 
+### Changing the artwork
+
+`BRAND_VERSION` in `src/views.js` must be **bumped** whenever `brand/` changes,
+along with the `?v=` in `public/branding/site.webmanifest`. That is not
+housekeeping, it is the deploy.
+
+The favicons and PWA icons are served with a 7-day `max-age` behind a CDN. A
+rebuild of the artwork is therefore invisible at the edge until those objects
+expire, and until then the site serves the old mark from the cache and the new
+one from the origin at the same time — a half-applied rebrand that is genuinely
+confusing to chase. Versioning the URLs makes a brand change atomic: every asset
+is a fresh object at every edge location at once. Same approach as
+`BRAND_VERSION` in pos.everlyce.com.
+
+Two further things have to happen, and neither is automatic:
+
+1. **Restart the service.** The mark is inlined into the page from the loaded
+   module, and the assets are held in a `Map` that is filled lazily on first
+   request and never invalidated. Both survive a redeploy untouched, so a
+   restart is what actually swaps the logo. Without it the site keeps serving
+   the previous artwork indefinitely, and — because the cache fills per file —
+   possibly a mixture of old and new.
+2. **Nothing needs purging**, which is the point of the version bump. If you
+   skip it, the stale objects are the ones already at the edge and they will
+   sit there for up to seven days.
+
+A test asserts the header mark matches `brand/icon.svg` and another asserts the
+`?v=` tags are present, so neither drift nor a missing bump passes quietly.
+
 Paste links get a real preview rather than the generic site card — the filename
 and an excerpt of the content, with `og:type=article`. All of it goes through
 the same escaping as the page body.
