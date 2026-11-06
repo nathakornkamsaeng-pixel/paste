@@ -3,6 +3,12 @@
 const config = require('./config');
 const pow = require('./pow');
 
+// One store for this process. A solved signup or setup challenge cannot be
+// posted again until the process restarts (and, even then, only until the
+// challenge's own timestamp expires). Lost on restart, on purpose: it is
+// not a durable account of anything.
+const usedChallenges = pow.createUsedChallengeStore();
+
 const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
 /**
@@ -41,11 +47,15 @@ async function verify({ form = {}, query = {}, headers = {}, remoteip = '' }) {
   }
 
   if (provider === 'pow') {
-    const result = pow.verify(config.serverSecret, {
-      challenge: form.pow_challenge,
-      sig: form.pow_sig,
-      nonce: form.pow_nonce,
-    });
+    const result = pow.verify(
+      config.serverSecret,
+      {
+        challenge: form.pow_challenge,
+        sig: form.pow_sig,
+        nonce: form.pow_nonce,
+      },
+      { used: usedChallenges },
+    );
     return result.ok
       ? { ok: true }
       : { ok: false, reason: `${result.reason}. Reload the page and try again.` };
@@ -146,6 +156,7 @@ function warnAtBoot(log) {
     warn(
       `[paste] proof-of-work captcha active at ${config.pow.bits} bits ` +
         `(~${Math.pow(2, config.pow.bits).toLocaleString()} hashes, about a second). ` +
+        'A solved challenge is single-use until this process restarts. ' +
         'Signups are also limited per IP and screened by a honeypot.',
     );
     return;
@@ -163,4 +174,4 @@ function warnAtBoot(log) {
   );
 }
 
-module.exports = { verify, isRealCaptcha, fields, isHoneypotFilled, HONEYPOT_FIELD, warnAtBoot };
+module.exports = { verify, isRealCaptcha, fields, isHoneypotFilled, HONEYPOT_FIELD, warnAtBoot, usedChallenges };

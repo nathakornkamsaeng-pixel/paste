@@ -5,10 +5,11 @@ const crypto = require('node:crypto');
 /*
  * Server side of the proof-of-work captcha.
  *
- * Stateless by design: a challenge carries everything needed to verify it, so
- * no table of outstanding challenges has to be kept and nothing has to expire
- * out of a cache. The difficulty lives *inside* the signed payload, so a client
- * cannot ask for an easier one.
+ * A challenge carries everything needed to verify it. The difficulty lives
+ * *inside* the signed payload, so a client cannot ask for an easier one.
+ * Verification itself stores nothing. Callers that want to stop a solved
+ * challenge being replayed inside its lifetime pass a used-challenge store;
+ * src/captcha.js does that for the single process this service runs as.
  *
  * Wire format, base64url of:
  *   12 bytes random
@@ -93,11 +94,56 @@ function hasLeadingZeroBits(digest, bits) {
 }
 
 /**
+ * In-memory record of challenges that have already been accepted.
+ *
+ * Single-process only: a restart forgets it, and a second process would not
+ * see it. Entries live as long as the challenge itself would, then drop out.
+ * The cap is a memory bound. Past it, the oldest entry is forgotten, which
+ * can allow a replay of that one challenge; signup rate limits are what
+ * bound how often that matters.
+ */
+function createUsedChallengeStore({ maxAgeMs = DEFAULT_MAX_AGE_MS, maxEntries = 20_000 } = {}) {
+  const used = new Map();
+
+  function sweep(now) {
+    for (const [key, exp] of used) {
+      if (exp <= now) used.delete(key);
+    }
+  }
+
+  return {
+    /**
+     * @returns {boolean} false when this challenge was already accepted and
+     *   is still inside the window
+     */
+    consume(challenge, now = Date.now()) {
+      if (typeof challenge !== 'string' || challenge.length === 0) return false;
+      const existing = used.get(challenge);
+      if (existing !== undefined && existing > now) return false;
+      if (used.size >= maxEntries) sweep(now);
+      if (used.size >= maxEntries) {
+        const oldest = used.keys().next().value;
+        if (oldest !== undefined) used.delete(oldest);
+      }
+      used.set(challenge, now + maxAgeMs);
+      return true;
+    },
+    size() {
+      return used.size;
+    },
+  };
+}
+
+/**
  * Verifies a submitted solution.
+ *
+ * Pass `used` to reject a challenge that has already been accepted. Without
+ * it, verification stays stateless and a proof can be replayed until it
+ * expires. A wrong nonce does not consume the challenge.
  *
  * @returns {{ok: true, bits: number} | {ok: false, reason: string}}
  */
-function verify(key, { challenge, sig, nonce }, { maxAgeMs = DEFAULT_MAX_AGE_MS } = {}) {
+function verify(key, { challenge, sig, nonce }, { maxAgeMs = DEFAULT_MAX_AGE_MS, used = null } = {}) {
   if (typeof nonce !== 'string' || nonce.length === 0 || nonce.length > 20 || !/^[0-9]+$/.test(nonce)) {
     return { ok: false, reason: 'missing or malformed proof' };
   }
@@ -127,6 +173,10 @@ function verify(key, { challenge, sig, nonce }, { maxAgeMs = DEFAULT_MAX_AGE_MS 
     return { ok: false, reason: 'proof of work did not check out' };
   }
 
+  if (used && typeof used.consume === 'function' && !used.consume(challenge)) {
+    return { ok: false, reason: 'challenge already used' };
+  }
+
   return { ok: true, bits: parsed.bits };
 }
 
@@ -138,6 +188,8 @@ module.exports = {
   leadingZeroBits,
   sign,
   base64url,
+  createUsedChallengeStore,
   PAYLOAD_BYTES,
   MAGIC,
+  DEFAULT_MAX_AGE_MS,
 };
