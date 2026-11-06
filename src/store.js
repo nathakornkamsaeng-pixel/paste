@@ -352,19 +352,54 @@ class Store {
     return true;
   }
 
-  /** Purges expired rows. Safe to call concurrently from several processes. */
+  /**
+   * Purges expired pastes and expired sessions.
+   *
+   * Safe to call concurrently from several processes. Does not read paste
+   * bodies, and does not touch audit_log: that table stays append-only.
+   * Returns counts only.
+   */
   sweep(now = Date.now()) {
     const info = this.db
       .prepare('DELETE FROM pastes WHERE expires_at IS NOT NULL AND expires_at <= ?')
       .run(now);
-    let purgedSessions = 0;
+    let sessions = 0;
     try {
       const s = this.db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now);
-      purgedSessions = Number(s.changes ?? 0);
+      sessions = Number(s.changes ?? 0);
     } catch {
       // A pre-accounts database has no sessions table yet.
     }
-    return Number(info.changes ?? 0) + purgedSessions;
+    return { pastes: Number(info.changes ?? 0), sessions };
+  }
+
+  /**
+   * Counts and file size for operators. Never selects paste content,
+   * filenames, or ids.
+   */
+  retentionStats(now = Date.now()) {
+    const one = (sql, ...args) => {
+      const row = this.db.prepare(sql).get(...args);
+      if (!row) return 0;
+      const value = Object.values(row)[0];
+      return Number(value ?? 0);
+    };
+    const pageSize = one('PRAGMA page_size');
+    const pageCount = one('PRAGMA page_count');
+    const freelist = one('PRAGMA freelist_count');
+    return {
+      pastes: one('SELECT COUNT(*) AS n FROM pastes'),
+      expiredPastes: one(
+        'SELECT COUNT(*) AS n FROM pastes WHERE expires_at IS NOT NULL AND expires_at <= ?',
+        now,
+      ),
+      sessions: one('SELECT COUNT(*) AS n FROM sessions'),
+      auditRows: one('SELECT COUNT(*) AS n FROM audit_log'),
+      pageSize,
+      pageCount,
+      freelist,
+      bytes: pageSize * pageCount,
+    };
   }
 
   /* ------------------------------------------------------------ accounts */
