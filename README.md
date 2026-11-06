@@ -20,7 +20,9 @@ Anonymous, no accounts, no analytics. Pastes live in a local SQLite file.
 
 ### Accounts
 
-Sign-up is open, username + password, no email and therefore no password reset.
+Sign-up is open, username + password. No email is stored, so there is no
+self-service password reset and no reset link. An administrator resets the
+password; that is the only way back in. The login and signup pages say so.
 
 - **Manage pastes from any device** — `/account` lists everything you made,
   with edit, delete, and unlist. Previously this was a per-browser cookie only.
@@ -189,7 +191,11 @@ Two further things have to happen, and neither is automatic:
    request and never invalidated. Both survive a redeploy untouched, so a
    restart is what actually swaps the logo. Without it the site keeps serving
    the previous artwork indefinitely, and — because the cache fills per file —
-   possibly a mixture of old and new.
+   possibly a mixture of old and new. Startup compares the loaded
+   `BRAND_VERSION` with `src/views.js` and `site.webmanifest` on disk and
+   logs a warning when a restart would serve a different version. The check
+   does not stop the process. The full checklist is in
+   [docs/ops.md](docs/ops.md#brand-restart-checklist).
 2. **Nothing needs purging**, which is the point of the version bump. If you
    skip it, the stale objects are the ones already at the edge and they will
    sit there for up to seven days.
@@ -282,7 +288,9 @@ The admin panel exposes **counts and sizes only** — never content, never
 filenames, never paste ids. This is enforced at the store layer rather than in
 the template, so a template mistake cannot leak it, and it is covered by tests
 that assert the content is absent from `/admin`, `/admin/settings` and the
-`listUsers` result itself.
+`listUsers` result itself. `scripts/maintain.js` follows the same rule: counts
+and the database size, and a sweep that deletes expired rows without selecting
+their content.
 
 Administrators can still open a paste they hold a link to, exactly as any other
 visitor can. That is inherent to link-shared content: the link *is* the
@@ -290,13 +298,22 @@ capability, and there is no version of this site that can revoke that.
 
 ## Operations
 
+Node.js **22.5 or newer** (`package.json` `engines`, `.nvmrc` is `22`).
+GitHub Actions runs `npm test` on Node 22.x for pushes and pull requests to
+`main`.
+
 ```bash
 systemctl status paste          # service
 systemctl restart paste
 journalctl -u paste -f          # logs
-npm test                        # 117 integration tests
+npm test                        # integration tests
 node --no-warnings scripts/admin.js list
+node --no-warnings scripts/maintain.js stats   # counts and size, never content
+node --no-warnings scripts/maintain.js sweep   # expired pastes and sessions
 ```
+
+Backup, the Cloudflare origin lock, audit-log growth, and the brand restart
+check are written out in [docs/ops.md](docs/ops.md).
 
 **Light only.** There is no dark theme and no toggle, so there is no second
 palette to drift out of sync and nothing to flash on load. Every text and
@@ -391,6 +408,7 @@ Environment variables, all optional (see `src/config.js`):
 | `PASTE_ADMINS` | empty (comma-separated usernames) |
 | `PASTE_ADMINS` note | promoted on every boot; warns if the named accounts do not exist yet |
 | `PASTE_ADMIN_MAX` / `PASTE_ADMIN_WINDOW_MS` | `60` / `60000` |
+| `PASTE_SWEEP_INTERVAL_MS` | `60000` (startup and interval sweep; `0` disables the timer) |
 
 ## Captcha
 
@@ -403,9 +421,12 @@ bits, in a Web Worker so the page stays responsive, and posts the nonce back.
 The server recomputes the hash itself, so a client that merely claims to have
 solved it gains nothing.
 
-- **Stateless.** The challenge carries its own difficulty and timestamp, both
-  covered by an HMAC over the deployment's secret. Nothing is stored, so
-  nothing has to expire out of a cache.
+- **Single-use in this process.** The challenge carries its own difficulty
+  and timestamp, both covered by an HMAC over the deployment's secret.
+  Nothing is written to SQLite. A challenge that has already been accepted
+  is remembered in memory and rejected on replay until the process restarts
+  (after a restart, only until the challenge's own 15-minute timestamp
+  expires). A fresh challenge is still cheap to solve.
 - **Difficulty cannot be lowered by the client** — it lives inside the signed
   payload, not in a form field.
 - **Served same-origin** at `/static/pow-worker.js`, so the CSP stays at
@@ -436,13 +457,15 @@ boundary:
 - **Stops** naive bots, headless form-fillers, and signup scripts that post
   without implementing the challenge. Each signup costs them real CPU.
 - **Does not stop** a determined attacker. Anyone willing to write a native
-  SHA-256 solver can produce proofs cheaply, and a solved challenge can be
-  replayed inside its 15-minute window because verification is stateless.
-  The per-IP rate limit is what actually bounds the damage.
+  SHA-256 solver can produce proofs cheaply. Replaying one solved challenge
+  is rejected, but minting a new one is not expensive. The per-IP rate limit
+  is what actually bounds the damage. The in-memory replay cache is forgotten
+  on restart and is not shared with a second process.
 - If signup is being abused in a way that matters, set
   `PASTE_TURNSTILE_SECRET` and `PASTE_TURNSTILE_SITE_KEY` to switch to
   Turnstile, which is verified server-side against Cloudflare and is harder to
-  solve at scale.
+  solve at scale. That replaces proof of work; it is not a second captcha
+  beside it. The switch is spelled out in [docs/ops.md](docs/ops.md#captcha).
 
 ## Security notes
 
@@ -491,12 +514,15 @@ The origin IP is public, so someone bypassing Cloudflare can still reach nginx
 directly over plain HTTP. That is the existing posture for the other
 `everlyce.com` vhosts and was left consistent. To close it, restrict `:80` and
 `:443` at the firewall to Cloudflare's ranges — but do that only if the other
-sites on this box are migrated too, since they share the listeners.
+sites on this box are migrated too, since they share the listeners. The
+firewall recipe, the nginx `allow`/`deny` alternative, and that shared-listener
+warning are in [docs/ops.md](docs/ops.md#cloudflare-origin-lock).
 
 ## License
 
-**GNU Affero General Public License v3.0** — see [`LICENSE`](LICENSE) for the
-full text.
+**GNU Affero General Public License v3.0 only.** The SPDX identifier in
+`package.json` is `AGPL-3.0-only`. [`LICENSE`](LICENSE) is the license text
+and is left verbatim.
 
 AGPL rather than GPL, deliberately: Everlyce paste is a **network service**. Section 13
 is the part that matters here. If you run a modified version of this and let
@@ -508,12 +534,16 @@ To satisfy section 13 when you deploy your own build, publish a **Source** link
 that leads to the source of the running version, and keep it in step with what
 you actually serve. This repository is that link for the unmodified build.
 
+This repository does not grant "or any later version". The sibling product
+Everlyce-Pos is licensed `AGPL-3.0-or-later`; that grant is not this one, and
+this tree is not being relicensed to match it. To permit later versions of the
+Affero GPL here, change the SPDX id and the notice below together.
+
     Copyright (C) 2026 Everlyce
 
     This program is free software: you can redistribute it and/or modify it
     under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or (at your
-    option) any later version.
+    the Free Software Foundation, version 3.
 
     This program is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -522,8 +552,3 @@ you actually serve. This repository is that link for the unmodified build.
 
     You should have received a copy of the GNU Affero General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-`package.json` declares the SPDX id `AGPL-3.0-only`. If you would rather permit
-relicensing under the "or later" terms, change it to `AGPL-3.0-or-later` and
-say "either version 3 of the License, or (at your option) any later version" in
-the notice above.

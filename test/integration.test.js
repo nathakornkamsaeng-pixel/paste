@@ -8,6 +8,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 process.env.PASTE_DB = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'paste-test-')), 't.db');
 process.env.PASTE_CREATE_MAX = '1000';
@@ -2288,6 +2289,286 @@ test('an administrator cannot delete a paste, because they cannot see it', async
   assert.equal(viaAccount.status, 404);
 
   assert.equal((await request('GET', `/${id}`)).status, 200, 'the paste survives');
+});
+
+/* --------------------------------------------------------------- config */
+
+test('tier limits and the server secret each have one binding', () => {
+  const config = require('../src/config');
+  assert.deepEqual(Object.keys(config.tiers.anonymous).sort(), ['createPerWindow', 'maxPasteBytes']);
+  assert.deepEqual(Object.keys(config.tiers.account).sort(), ['createPerWindow', 'maxPasteBytes']);
+  assert.equal(config.maxPasteBytes, config.tiers.anonymous.maxPasteBytes);
+  assert.equal(config.tiers.anonymous.createPerWindow, 1000);
+  assert.equal(Object.hasOwn(config.tiers.anonymous, 'serverSecret'), false);
+  assert.equal(Object.hasOwn(config.tiers.account, 'serverSecret'), false);
+  assert.equal(Object.hasOwn(config, 'serverSecret'), true);
+  assert.ok(Buffer.isBuffer(config.serverSecret));
+  assert.ok(config.tiers.account.maxPasteBytes > config.tiers.anonymous.maxPasteBytes);
+});
+
+test('config rejects a limit that is not a non-negative integer', () => {
+  const result = spawnSync(process.execPath, ['-e', "require('./src/config.js')"], {
+    cwd: path.join(__dirname, '..'),
+    env: { ...process.env, PASTE_MAX_BYTES: 'nope' },
+    encoding: 'utf8',
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stderr}`, /PASTE_MAX_BYTES must be a non-negative integer/);
+});
+
+/* ---------------------------------------------------- no email reset */
+
+test('login and signup say a forgotten password is an admin reset', async () => {
+  for (const route of ['/login', '/signup']) {
+    const res = await request('GET', route);
+    assert.equal(res.status, 200);
+    assert.match(res.text, /No email is stored/);
+    assert.match(res.text, /no password-reset link/);
+    assert.match(res.text, /reset by an administrator/);
+    assert.equal(res.text.includes('mailto:'), false);
+  }
+});
+
+/* ------------------------------------------------- proof replay */
+
+test('a wrong nonce does not spend the challenge', () => {
+  const key = crypto.randomBytes(48);
+  const issued = powModule.issue(key, 8);
+  const solved = solvePow(issued.challenge, issued.bits);
+  const used = powModule.createUsedChallengeStore();
+  const bad = powModule.verify(
+    key,
+    { challenge: issued.challenge, sig: issued.sig, nonce: '1' },
+    { used },
+  );
+  assert.equal(bad.ok, false);
+  assert.equal(used.size(), 0);
+  const good = powModule.verify(
+    key,
+    { challenge: issued.challenge, sig: issued.sig, nonce: solved.nonce },
+    { used },
+  );
+  assert.equal(good.ok, true);
+  assert.equal(used.size(), 1);
+});
+
+test('a solved proof is rejected on replay when a store is attached', () => {
+  const key = crypto.randomBytes(48);
+  const issued = powModule.issue(key, 8);
+  const solved = solvePow(issued.challenge, issued.bits);
+  const proof = { challenge: issued.challenge, sig: issued.sig, nonce: solved.nonce };
+  const used = powModule.createUsedChallengeStore();
+  assert.equal(powModule.verify(key, proof, { used }).ok, true);
+  const again = powModule.verify(key, proof, { used });
+  assert.equal(again.ok, false);
+  assert.match(again.reason, /already used/);
+
+  const fresh = powModule.issue(key, 8);
+  const solvedFresh = solvePow(fresh.challenge, fresh.bits);
+  assert.equal(
+    powModule.verify(key, { challenge: fresh.challenge, sig: fresh.sig, nonce: solvedFresh.nonce }, { used }).ok,
+    true,
+  );
+});
+
+test('a wrong signup nonce does not spend the challenge', async () => {
+  const jar = {};
+  const page = await request('GET', '/signup', { jar });
+  const challenge = powOf(page.text);
+  const solved = solvePow(challenge.challenge, challenge.bits);
+  const base = {
+    password: 'correct-horse-battery',
+    confirm: 'correct-horse-battery',
+    csrf: csrfOf(page.text),
+    pow_challenge: challenge.challenge,
+    pow_sig: challenge.sig,
+  };
+  const bad = await request('POST', '/signup', {
+    jar,
+    form: { ...base, username: 'powspend', pow_nonce: '1' },
+  });
+  assert.equal(bad.status, 400);
+  const good = await request('POST', '/signup', {
+    jar,
+    form: { ...base, username: 'powspend', pow_nonce: solved.nonce },
+  });
+  assert.equal(good.status, 303);
+  assert.ok(store.findUserByUsername('powspend'));
+});
+
+test('a solved signup challenge cannot be replayed', async () => {
+  const page = await request('GET', '/signup');
+  const challenge = powOf(page.text);
+  const solved = solvePow(challenge.challenge, challenge.bits);
+  const form = {
+    username: 'powonce',
+    password: 'correct-horse-battery',
+    confirm: 'correct-horse-battery',
+    csrf: csrfOf(page.text),
+    pow_challenge: challenge.challenge,
+    pow_sig: challenge.sig,
+    pow_nonce: solved.nonce,
+  };
+  const first = await request('POST', '/signup', { form });
+  assert.equal(first.status, 303);
+  const second = await request('POST', '/signup', {
+    form: { ...form, username: 'powonce2' },
+  });
+  assert.equal(second.status, 400);
+  assert.match(second.text, /already used/);
+  assert.equal(store.findUserByUsername('powonce2'), null);
+});
+
+/* -------------------------------------------------------------- sweep */
+
+test('sweep deletes expired pastes and sessions and keeps the audit log', () => {
+  const s = new Store(':memory:');
+  const live = s.create({ content: 'SECRET_KEEP_BODY' });
+  const dead = s.create({ content: 'SECRET_DROP_BODY', ttlMs: 60_000 });
+  const now = Date.now();
+  s.db.prepare('UPDATE pastes SET expires_at = ? WHERE id = ?').run(now - 1000, dead.id);
+  const user = s.createUser('sweptuser', 'not-checked');
+  s.createSession(user.id, 60_000);
+  s.createSession(user.id, 60_000);
+  s.db.prepare(
+    'UPDATE sessions SET expires_at = ? WHERE rowid = (SELECT MIN(rowid) FROM sessions)',
+  ).run(now - 1000);
+  s.audit({ actorName: 't', action: 'keep.me', target: 'audit-target' });
+
+  const removed = s.sweep(now);
+  assert.deepEqual(removed, { pastes: 1, sessions: 1 });
+  assert.equal(JSON.stringify(removed).includes('SECRET_'), false);
+  assert.equal(s.count(), 1);
+  assert.equal(s.peek(live.id).id, live.id);
+  assert.equal(s.peek(dead.id), null);
+  assert.equal(s.auditCount(), 1);
+
+  const stats = s.retentionStats(now);
+  assert.equal(stats.pastes, 1);
+  assert.equal(stats.expiredPastes, 0);
+  assert.equal(stats.sessions, 1);
+  assert.equal(stats.auditRows, 1);
+  assert.equal(JSON.stringify(stats).includes('SECRET_'), false);
+  assert.deepEqual(Object.keys(stats).sort(), [
+    'auditRows',
+    'bytes',
+    'expiredPastes',
+    'freelist',
+    'pageCount',
+    'pageSize',
+    'pastes',
+    'sessions',
+  ]);
+  s.close();
+});
+
+test('maintain.js reports counts and sweeps without printing paste content', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'paste-maintain-'));
+  const db = path.join(dir, 't.db');
+  const s = new Store(db);
+  const dead = s.create({ content: 'SECRET_PASTE_BODY_77', ttlMs: 60_000 });
+  s.db.prepare('UPDATE pastes SET expires_at = ? WHERE id = ?').run(Date.now() - 50, dead.id);
+  s.audit({ actorName: 'ops', action: 'note', target: 'keep-audit' });
+  s.close();
+
+  const env = { ...process.env, PASTE_DB: db };
+  const repo = path.join(__dirname, '..');
+  const run = (args) =>
+    spawnSync(process.execPath, ['--no-warnings', 'scripts/maintain.js', ...args], {
+      cwd: repo,
+      env,
+      encoding: 'utf8',
+    });
+
+  const stats = run(['stats']);
+  assert.equal(stats.status, 0, stats.stderr);
+  assert.match(stats.stdout, /pastes=1/);
+  assert.match(stats.stdout, /expired_pastes=1/);
+  assert.match(stats.stdout, /audit_rows=1/);
+  assert.equal(`${stats.stdout}${stats.stderr}`.includes('SECRET_PASTE_BODY_77'), false);
+
+  const swept = run(['sweep']);
+  assert.equal(swept.status, 0, swept.stderr);
+  assert.match(swept.stdout, /removed_pastes=1/);
+  assert.match(swept.stdout, /pastes=0/);
+  assert.equal(`${swept.stdout}${swept.stderr}`.includes('SECRET_PASTE_BODY_77'), false);
+
+  const after = new Store(db);
+  assert.equal(after.count(), 0);
+  assert.equal(after.auditCount(), 1);
+  after.close();
+
+  const vacuumed = run(['vacuum']);
+  assert.equal(vacuumed.status, 0, vacuumed.stderr);
+  assert.match(vacuumed.stdout, /vacuum=ok/);
+  assert.match(vacuumed.stdout, /audit_rows=1/);
+});
+
+/* --------------------------------------------------------------- brand */
+
+test('the loaded brand version matches what a restart would read', () => {
+  const brand = require('../src/brand');
+  const status = brand.checkInstalledBrand(views.BRAND_VERSION);
+  assert.equal(status.restartRequired, false);
+  assert.equal(status.manifestDrift, false);
+  assert.equal(status.sourceUnreadable, false);
+  assert.equal(status.manifestUnreadable, false);
+  assert.equal(status.loadedVersion, status.sourceVersion);
+  assert.equal(status.loadedVersion, status.manifestVersion);
+  assert.match(brand.formatBrandLog(status), /Restart after any BRAND_VERSION/);
+});
+
+test('brand check warns when disk is newer than the running process', () => {
+  const brand = require('../src/brand');
+  const status = brand.checkBrandVersions({
+    loadedVersion: 4,
+    viewsPath: 'views.js',
+    manifestPath: 'site.webmanifest',
+    readFile(file) {
+      if (String(file).endsWith('views.js')) return 'const BRAND_VERSION = 9;\n';
+      return JSON.stringify({ icons: [{ src: '/branding/icon-192.png?v=9' }] });
+    },
+  });
+  assert.equal(status.restartRequired, true);
+  assert.equal(status.sourceVersion, 9);
+  assert.equal(status.manifestVersion, 9);
+  const line = brand.formatBrandLog(status);
+  assert.match(line, /serving 4/);
+  assert.match(line, /disk says 9/);
+  assert.match(line, /until you restart/);
+});
+
+test('brand check warns when the manifest version drifted', () => {
+  const brand = require('../src/brand');
+  const status = brand.checkBrandVersions({
+    loadedVersion: 4,
+    viewsPath: 'views.js',
+    manifestPath: 'site.webmanifest',
+    readFile(file) {
+      if (String(file).endsWith('views.js')) return 'const BRAND_VERSION = 4;\n';
+      return JSON.stringify({ icons: [{ src: '/branding/icon-192.png?v=5' }] });
+    },
+  });
+  assert.equal(status.restartRequired, false);
+  assert.equal(status.manifestDrift, true);
+  assert.match(brand.formatBrandLog(status), /site\.webmanifest is \?v=5/);
+});
+
+test('brand check keeps going when the files cannot be read', () => {
+  const brand = require('../src/brand');
+  const status = brand.checkBrandVersions({
+    loadedVersion: 4,
+    viewsPath: 'views.js',
+    manifestPath: 'site.webmanifest',
+    readFile() {
+      throw new Error('enoent');
+    },
+  });
+  assert.equal(status.restartRequired, false);
+  assert.equal(status.manifestDrift, false);
+  assert.equal(status.sourceUnreadable, true);
+  assert.equal(status.manifestUnreadable, true);
+  assert.match(brand.formatBrandLog(status), /brand version 4/);
 });
 
 test("highlights code and escapes markup", async () => {

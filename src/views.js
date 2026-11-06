@@ -356,6 +356,7 @@ ${banner}<h1>Create an account</h1>
   <div class="actions"><button type="submit" class="btn">Create account</button></div>
 </form>
 <p class="muted">Already have an account? <a href="/login">Log in</a></p>
+<p class="muted">No email is stored, so there is no password-reset link. A forgotten password is reset by an administrator; that is the only way back in.</p>
 `,
   });
 }
@@ -378,6 +379,7 @@ ${banner}<h1>Log in</h1>
   <div class="actions"><button type="submit" class="btn">Log in</button></div>
 </form>
 <p class="muted">No account? <a href="/signup">Sign up</a></p>
+<p class="muted">No email is stored, so there is no password-reset link. A forgotten password is reset by an administrator; that is the only way back in.</p>
 `,
   });
 }
@@ -771,4 +773,6 @@ module.exports = {
   setupPage,
   layout,
   formatBytes,
+  BRAND_VERSION,
+  SITE_NAME,
 };

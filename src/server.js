@@ -5,6 +5,8 @@ const config = require('./config');
 const { Store } = require('./store');
 const { createApp, makeSecrets } = require('./app');
 const legal = require('./legal');
+const views = require('./views');
+const brand = require('./brand');
 
 function start() {
   const store = new Store(config.dbPath);
@@ -86,6 +88,31 @@ function start() {
     );
   }
 
+  const brandStatus = brand.checkInstalledBrand(views.BRAND_VERSION);
+  const brandLine = brand.formatBrandLog(brandStatus);
+  if (brandStatus.restartRequired || brandStatus.manifestDrift) console.warn(brandLine);
+  else console.log(brandLine);
+
+  // Reclaim expired pastes and sessions even when nobody is requesting
+  // anything. The handler also sweeps, but only after traffic arrives.
+  const runSweep = (reason) => {
+    try {
+      const removed = store.sweep();
+      const total = removed.pastes + removed.sessions;
+      if (total > 0) {
+        console.log(
+          `[paste] sweep (${reason}) removed ${removed.pastes} expired paste(s) and ${removed.sessions} expired session(s)`,
+        );
+      }
+    } catch (err) {
+      console.error(`[paste] sweep (${reason}) failed:`, err);
+    }
+  };
+  runSweep('startup');
+  const sweepTimer =
+    config.sweepIntervalMs > 0 ? setInterval(() => runSweep('interval'), config.sweepIntervalMs) : null;
+  if (sweepTimer) sweepTimer.unref();
+
   server.listen(config.port, config.host, () => {
     console.log(`[paste] listening on http://${config.host}:${config.port} -> ${config.publicOrigin}`);
     console.log(`[paste] admins: ${store.adminCount()} of ${store.userCount()} account(s)`);
@@ -98,6 +125,7 @@ function start() {
 
   const shutdown = (signal) => {
     console.log(`[paste] ${signal} received, draining`);
+    if (sweepTimer) clearInterval(sweepTimer);
     for (const limiter of [...Object.values(createLimiters), readLimiter, signupLimiter, loginLimiter, adminLimiter]) {
       limiter.stop();
     }

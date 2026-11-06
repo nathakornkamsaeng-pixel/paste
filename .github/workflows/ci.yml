@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Require Node.js 22.5 or newer
+        run: node -e "const [maj,min]=process.versions.node.split('.').map(Number); if (maj<22||(maj===22&&min<5)){console.error('Node >=22.5 required, got '+process.version); process.exit(1)}"
+      - run: npm ci
+      - run: npm test

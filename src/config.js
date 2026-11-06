@@ -14,6 +14,14 @@ const int = (name, fallback) => {
 
 const root = path.resolve(__dirname, '..');
 
+// Each limit is read from exactly one environment variable, once. The public
+// API advertises the anonymous ceiling, so maxPasteBytes is that same value
+// rather than a second read of PASTE_MAX_BYTES.
+const anonymousMaxPasteBytes = int('PASTE_MAX_BYTES', 1024 * 1024);
+const anonymousCreatePerWindow = int('PASTE_CREATE_MAX', 10);
+const accountMaxPasteBytes = int('PASTE_MAX_BYTES_ACCOUNT', 4 * 1024 * 1024);
+const accountCreatePerWindow = int('PASTE_CREATE_MAX_ACCOUNT', 30);
+
 module.exports = {
   root,
   // Bind to loopback only. nginx is the sole public entry point, so the app
@@ -31,27 +39,26 @@ module.exports = {
   publicDir: path.join(root, 'public'),
   hljsDir: path.join(root, 'node_modules', 'highlight.js'),
 
-  // Anonymous ceilings. Accounts get their own, larger set below.
   // 48-byte key backing session secrets and proof-of-work challenge signatures.
-  // Shared with the app at boot; see src/app.js makeSecrets.
+  // Null until makeSecrets() in src/app.js reads or creates the key file and
+  // assigns it here. It lives on this object, not under a tier: every tier
+  // shares one deployment secret.
   serverSecret: null,
 
-  maxPasteBytes: int('PASTE_MAX_BYTES', 1024 * 1024),
+  // Anonymous paste ceiling. Identical to tiers.anonymous.maxPasteBytes; the
+  // public API docs are not tier-aware and report this one number.
+  maxPasteBytes: anonymousMaxPasteBytes,
   maxFilenameLen: 128,
 
   // Tier limits. `account` applies once a request carries a valid session.
   tiers: {
     anonymous: {
-      // 48-byte key backing session secrets and proof-of-work challenge signatures.
-  // Shared with the app at boot; see src/app.js makeSecrets.
-  serverSecret: null,
-
-  maxPasteBytes: int('PASTE_MAX_BYTES', 1024 * 1024),
-      createPerWindow: int('PASTE_CREATE_MAX', 10),
+      maxPasteBytes: anonymousMaxPasteBytes,
+      createPerWindow: anonymousCreatePerWindow,
     },
     account: {
-      maxPasteBytes: int('PASTE_MAX_BYTES_ACCOUNT', 4 * 1024 * 1024),
-      createPerWindow: int('PASTE_CREATE_MAX_ACCOUNT', 30),
+      maxPasteBytes: accountMaxPasteBytes,
+      createPerWindow: accountCreatePerWindow,
     },
   },
   createWindowMs: int('PASTE_CREATE_WINDOW_MS', 60_000),
@@ -94,7 +101,8 @@ module.exports = {
 
   // Captcha provider: the built-in proof-of-work by default, Turnstile when a
   // secret is configured, or 'none' to rely on the honeypot and rate limits
-  // alone.
+  // alone. One provider is active at a time; this is not a second captcha
+  // stacked on the first.
   captcha: {
     provider:
       process.env.PASTE_CAPTCHA ||
